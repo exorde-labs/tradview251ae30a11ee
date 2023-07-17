@@ -183,9 +183,11 @@ async def query(parameters: dict) -> AsyncGenerator[Item, None]:
     url_main_endpoint = "https://www.tradingview.com/ideas/?sort=recent"
     yielded_items = 0
     max_oldness_seconds, maximum_items_to_collect, min_post_length = read_parameters(parameters)
+    logging.info(f"[TradingView] - Scraping ideas posted less than {max_oldness_seconds} seconds ago.")
 
     async for item in request_entries_with_timeout(url_main_endpoint, max_oldness_seconds):
         yielded_items += 1
         yield item
+        logging.info(f"[TradingView] Found new post :\t {item.title}, posted at {item.created_at}, URL = {item.url}" )
         if yielded_items >= maximum_items_to_collect:
             break
