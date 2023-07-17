@@ -135,12 +135,10 @@ async def parse_entry_for_elements(_cards, _max_age):
             content = request_content_with_timeout(link)[:800]
             filtered_content = filter_string(content)
             filtered_content = post_title+ ". " + filtered_content
-            print(filtered_content)
 
             yield Item(
                 title=Title(post_title),
                 content=Content(filtered_content),
-                author=Author(author),
                 created_at=CreatedAt(date),
                 url=Url(link),
                 domain=Domain("tradingview.com"))
@@ -149,8 +147,8 @@ async def parse_entry_for_elements(_cards, _max_age):
 
 
 # default values
-DEFAULT_OLDNESS_SECONDS = 180
-DEFAULT_MAXIMUM_ITEMS = 5
+DEFAULT_OLDNESS_SECONDS = 360
+DEFAULT_MAXIMUM_ITEMS = 25
 DEFAULT_MIN_POST_LENGTH = 10
 
 def read_parameters(parameters):
@@ -188,6 +186,6 @@ async def query(parameters: dict) -> AsyncGenerator[Item, None]:
     async for item in request_entries_with_timeout(url_main_endpoint, max_oldness_seconds):
         yielded_items += 1
         yield item
-        logging.info(f"[TradingView] Found new post :\t {item.title}, posted at {item.created_at}, URL = {item.url}" )
+        logging.info(f"[TradingView] Found new post :\t {item.title}, posted at { item.created_at}, URL = {item.url}" )
         if yielded_items >= maximum_items_to_collect:
             break
