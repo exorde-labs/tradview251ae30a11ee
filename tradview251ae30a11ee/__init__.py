@@ -149,8 +149,8 @@ async def parse_entry_for_elements(_cards, _max_age):
 
 
 # default values
-DEFAULT_OLDNESS_SECONDS = 360
-DEFAULT_MAXIMUM_ITEMS = 25
+DEFAULT_OLDNESS_SECONDS = 180
+DEFAULT_MAXIMUM_ITEMS = 5
 DEFAULT_MIN_POST_LENGTH = 10
 
 def read_parameters(parameters):
