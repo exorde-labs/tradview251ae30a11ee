@@ -132,7 +132,7 @@ async def parse_entry_for_elements(_cards, _max_age):
             post_title = container2.text
             author = card.find("span", {"class": "tv-card-user-info__name"}).text
 
-            content = request_content_with_timeout(link)[:800]
+            content = request_content_with_timeout(link)
             filtered_content = filter_string(content)
             filtered_content = post_title+ ". " + filtered_content
 
