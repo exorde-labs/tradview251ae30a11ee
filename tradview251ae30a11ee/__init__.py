@@ -44,6 +44,8 @@ from exorde_data import (
 )
 import logging
 
+logging.basicConfig(level=logging.INFO)
+
 # GLOBAL VARIABLES
 USER_AGENT_LIST = [
     'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
@@ -66,11 +68,16 @@ def request_content_with_timeout(_url):
     try:
         response = requests.get(_url, headers={'User-Agent': random.choice(USER_AGENT_LIST)}, timeout=8.0)
         soup = BeautifulSoup(response.text, 'html.parser')
-        bob = soup.find("div", {"class": "tv-chart-view__description selectable"})
+        bob = soup.find("div", {"class": "description-aqIxarm1"})
         return bob.text
     except Exception as e:
         print("Error:" + str(e))
 
+def remove_time_phrase(text):
+    # Define a regex pattern to match the optional time phrase
+    pattern = r'^\d+\s+(minute|minutes|hour|hours|second|seconds)\s+ago'
+    # Substitute the matched pattern with an empty string
+    return re.sub(pattern, '', text).strip()
 
 async def request_entries_with_timeout(_url, _max_age):
     """
@@ -133,6 +140,7 @@ async def parse_entry_for_elements(_cards, _max_age):
             author = card.find("span", {"class": "tv-card-user-info__name"}).text
 
             content = request_content_with_timeout(link)
+            content = remove_time_phrase(content)
             filtered_content = filter_string(content)
             filtered_content = post_title+ ". " + filtered_content
 
@@ -186,6 +194,6 @@ async def query(parameters: dict) -> AsyncGenerator[Item, None]:
     async for item in request_entries_with_timeout(url_main_endpoint, max_oldness_seconds):
         yielded_items += 1
         yield item
-        logging.info(f"[TradingView] Found new post :\t {item.title}, posted at { item.created_at}, URL = {item.url}" )
+        logging.info(f"[TradingView] Found new post :\t {item}" )
         if yielded_items >= maximum_items_to_collect:
             break
