@@ -43,6 +43,7 @@ from exorde_data import (
     Domain,
 )
 import logging
+import pytz
 
 logging.basicConfig(level=logging.INFO)
 
@@ -87,9 +88,13 @@ async def request_entries_with_timeout(_url, _max_age):
     :return: the card elements from which we can extract the relevant information
     """
     try:
-        response = requests.get(_url, headers={'User-Agent': random.choice(USER_AGENT_LIST)}, timeout=8.0)
+        response = requests.get(_url, headers={'User-Agent': random.choice(USER_AGENT_LIST)}, timeout=3.0)
         soup = BeautifulSoup(response.text, 'html.parser')
-        entries = soup.find_all("div", {"class": "tv-widget-idea js-userlink-popup-anchor"})
+        # entries = soup.find_all("div", {"class": "tv-widget-idea js-userlink-popup-anchor"})
+        # find all article elements that have the the substring "card" in their class
+        entries = soup.find_all("article", class_=re.compile("card"))
+        # print number of entries
+        logging.info("Number of entries: %s", len(entries))
         async for item in parse_entry_for_elements(entries, _max_age):
             yield item
     except Exception as e:
@@ -107,8 +112,17 @@ def check_for_max_age(_date, _max_age):
     :param _max_age: the max age to which we will be comparing the timestamp
     :return: true if it is within the age bracket, false otherwise
     """
-    date_to_check = datetime.strptime(_date, "%Y-%m-%dT%H:%M:%S.00Z")
-    if (datetime.now() - date_to_check).total_seconds() <= _max_age:
+    # apply strptime IF the date is in string format
+    if isinstance(_date, str):
+        date_to_check = datetime.strptime(_date, "%Y-%m-%dT%H:%M:%S.00Z")
+    else:
+        date_to_check = _date
+    # make the date utc+0 from utc+2
+    date_to_check = date_to_check.replace(tzinfo=pytz.timezone('UTC')).astimezone(pytz.utc)
+    # now must be UTC+0
+    now = datetime.now(pytz.utc)
+    delay = now - date_to_check
+    if  delay.total_seconds() <= _max_age:
         return True
     else:
         return False
@@ -126,33 +140,56 @@ async def parse_entry_for_elements(_cards, _max_age):
     :return: All the parameters we need to return an Item instance
     """
     try:
+        # 
         for card in _cards:
-            timestamp = card.find("span", {"data-timestamp": True})["data-timestamp"]
-            date = convert_from_timestamp(int(float(timestamp)))
+            print("Parsing card")
+            
+            # Find timestamp
+            timestamp_elem = card.find("time", {"class": "publication-date-CgENjecZ"})
+            if timestamp_elem and timestamp_elem.has_attr("datetime"):
+                timestamp = timestamp_elem["datetime"]
+                date = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            else:
+                print("Timestamp not found, skipping card")
+                continue
 
-            if not check_for_max_age(date, _max_age): continue  # check if the post respects the max age we are looking for
+            if not check_for_max_age(date, _max_age):
+                print("Card too old, skipping")
+                continue
 
-            container = card.find("div", {"class": "tv-widget-idea__title-row"})
-            container2 = container.find("a",
-                                        {"class": "tv-widget-idea__title apply-overflow-tooltip js-widget-idea__popup"})
-            link = "https://www.tradingview.com" + container2["href"]
-            post_title = container2.text
-            author = card.find("span", {"class": "tv-card-user-info__name"}).text
+            # Find title and link
+            title_elem = card.find("a", {"class": "title-tkslJwxl"})
+            if title_elem:
+                link = title_elem["href"]
+                post_title = title_elem.text
+            else:
+                continue
 
-            content = request_content_with_timeout(link)
-            content = remove_time_phrase(content)
-            filtered_content = filter_string(content)
-            filtered_content = post_title+ ". " + filtered_content
+            # Find author
+            author_elem = card.find("a", {"class": "card-author-link-BhFUdJAZ"})
+            if author_elem:
+                author = author_elem.text
+            else:
+                author = "Unknown"
+
+            # Find content
+            content_elem = card.find("a", {"class": "paragraph-t3qFZvNN"})
+            if content_elem:
+                content = content_elem.text
+                filtered_content = filter_string(content)
+            else:
+                filtered_content = ""
 
             yield Item(
                 title=Title(post_title),
                 content=Content(filtered_content),
                 created_at=CreatedAt(date),
                 url=Url(link),
-                domain=Domain("tradingview.com"))
-    except Exception as e:
-        print("Error:" + str(e))
+                domain=Domain("tradingview.com")
+            )
 
+    except Exception as e:
+        logging.exception(f"Error parsing card: {str(e)}")
 
 # default values
 DEFAULT_OLDNESS_SECONDS = 360
