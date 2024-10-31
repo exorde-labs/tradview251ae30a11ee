@@ -1,31 +1,3 @@
-"""
-In this script we are going to collect data from TradingView. We will navigate to this link:
-
-https://www.tradingview.com/ideas/?sort=recent
-
-Once on it, we can extract all the latest posts.
-
-A simple GET request will return the page. We can then perform a lookup for all the elements following this structure:
-
-<div class="tv-widget-idea js-userlink-popup-anchor"> :: the card class that encompasses what we want
-    ...
-    <div class="tv-widget-idea__title-row"> :: the subclass that encompasses the link to the post
-        <a href=[link to post]/> :: link to post + title
-    </div>
-    <span data-timestamp=[timestamp]/> :: the timestamp linked to the post
-    <span class="tv-card-user-info__name"/> :: the username of the author of the post
-    ...
-</div>
-
-With this, we can extract the links to every post if any match the time window that we are interested in.
-
-Another GET request on the identified links of interest will yield the relevant posts and their contents.
-
-Once the GET request returns on the link of the post, look for these elements:
-
-<div class="tv-chart-view__description-wrap js-chart-view__description"/> ::  returns the content of the post
-
-"""
 import re
 import requests
 import random
