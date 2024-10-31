@@ -155,7 +155,8 @@ async def parse_entry_for_elements(_cards, _max_age):
             yield Item(
                 title=Title(post_title),
                 content=Content(filtered_content),
-                created_at=CreatedAt(date),
+                # created_at=CreatedAt(date),
+                created_at=CreatedAt(date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")),
                 url=Url(link),
                 domain=Domain("tradingview.com")
             )
