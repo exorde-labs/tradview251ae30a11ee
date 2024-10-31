@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="tradview251ae30a11ee",
-    version="0.0.7",
+    version="0.0.8",
     packages=find_packages(),
     install_requires=[
         "exorde_data",
